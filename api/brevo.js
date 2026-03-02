@@ -26,16 +26,18 @@ export default async function handler(req, res) {
   try {
     if (req.method === 'POST') {
       // Crear/actualizar contacto
-      const { email, attributes } = req.body;
+      const { email, attributes, listId } = req.body;
 
       if (!email || !attributes) {
         return res.status(400).json({ error: 'Email y atributos son requeridos' });
       }
 
+      const listIds = listId != null ? [parseInt(listId, 10)] : [parseInt(BREVO_LIST_ID, 10)];
+
       const payload = {
         email,
         attributes,
-        listIds: [parseInt(BREVO_LIST_ID)],
+        listIds,
         updateEnabled: true
       };
 
