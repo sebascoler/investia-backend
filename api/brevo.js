@@ -25,8 +25,12 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'POST') {
-      // Crear/actualizar contacto
-      const { email, attributes, listId } = req.body;
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (_) { body = {}; }
+      }
+      body = body || {};
+      const { email, attributes, listId } = body;
 
       if (!email || !attributes) {
         return res.status(400).json({ error: 'Email y atributos son requeridos' });
@@ -50,20 +54,29 @@ export default async function handler(req, res) {
         body: JSON.stringify(payload)
       });
 
+      const responseText = await response.text();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        return res.status(response.status).json({
-          error: errorData.message || 'Error al agregar contacto'
-        });
+        let errMsg = 'Error al agregar contacto';
+        try {
+          const errorData = JSON.parse(responseText);
+          if (errorData && errorData.message) errMsg = errorData.message;
+        } catch (_) {
+          if (responseText) errMsg = responseText.slice(0, 200);
+        }
+        return res.status(response.status).json({ error: errMsg });
       }
 
-      const result = await response.json();
+      let result = null;
+      try {
+        result = responseText ? JSON.parse(responseText) : {};
+      } catch (_) {}
       return res.json({ success: true, data: result });
 
     } else if (req.method === 'PUT') {
-      // Actualizar contacto existente
       const { email } = req.query;
-      const { attributes } = req.body;
+      const body = req.body || {};
+      const { attributes } = body;
 
       if (!email || !attributes) {
         return res.status(400).json({ error: 'Email y atributos son requeridos' });
